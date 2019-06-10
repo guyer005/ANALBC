@@ -1,0 +1,101 @@
+ Dim StockN As Long
+ Dim DatesTally As Long
+ Dim DatesOpen As Long
+ Dim Opens As Double
+ Dim Closes As Double
+ Dim Volumes As Double
+ Dim VolTot As Double
+ Dim Delta As Double
+ Dim MaxDelta As Double
+ Dim MinDelta As Double
+ Dim MaxVol As Double
+ Dim RowMax As Long
+ Dim RowMin As Long
+ Dim RowMVol As Long
+ Dim lastrow As Long
+
+'This code uses the fact that the name change of the ticker can be used to separate stocks out
+'Then adjustments are made to account for the fact the first entry must be ignored
+'With proper tallying it is possible to complete all objectives per sheet in around 5-7 seconds using ONE For loop
+'This code uses my long-used method of scanning data and identifying + storing extremes
+'Initialize comparisons to zero, then find the max, min, etc. by comparing to store
+'In order to get the open value correct, I created a counter that tallies the # of stocks per ticker (DatesTally)
+
+Sub Stocks()
+ For N = 1 To ThisWorkbook.Worksheets.Count
+  Worksheets(N).Activate
+  
+  lastrow = Cells(Rows.Count, "A").End(xlUp).Row
+  DatesTally = 0
+  StockN = 0
+  Volumes = 0
+  MaxDelta = 0
+  MinDelta = 0
+  MaxVol = 0
+  Cells(1, 9).Value = "Ticker"
+  Cells(1, 10).Value = "Yearly Change"
+  Cells(1, 11).Value = "Percent Change"
+  Cells(1, 12).Value = "Total Stock Volume"
+  Cells(2, 15).Value = "Greatest % Increase"
+  Cells(3, 15).Value = "Greatest % Decrease"
+  Cells(4, 15).Value = "Greatest Total Volume"
+  Cells(1, 16).Value = "Ticker"
+  Cells(1, 17).Value = "Value"
+ 
+  For i = 2 To lastrow
+   
+    Volumes = Volumes + Cells(i, 7)
+    DatesTally = DatesTally + 1
+    If Cells(i - 1, 1).Value <> Cells(i, 1).Value Then
+       StockN = StockN + 1
+     If StockN > 1 Then
+         Cells(StockN, 9).Value = Cells(i - 1, 1).Value
+         DatesOpen = DatesTally
+         DatesTally = 1
+         Opens = Cells(i - DatesOpen + 1, 3).Value
+         Closes = Cells(i - 1, 6).Value
+         VolTot = Volumes
+         Volumes = 0
+         'Error Trapping the Divide by Zero that Occurred in the Full dataset in 2015
+         If (Opens > 0) Then
+             Delta = (Closes - Opens) / Opens
+         Else
+             Delta = 0
+         End If
+         Cells(StockN, 10).Value = Closes - Opens
+         If (Closes - Opens <= 0) Then
+           Cells(StockN, 10).Interior.ColorIndex = 3
+         Else
+           Cells(StockN, 10).Interior.ColorIndex = 4
+         End If
+         Cells(StockN, 11).Value = Delta
+         Cells(StockN, 11).NumberFormat = "0.00%"
+         Cells(StockN, 12).Value = VolTot
+             If Delta > MaxDelta Then
+                MaxDelta = Delta
+                RowMax = StockN
+             End If
+             If Delta < MinDelta Then
+                MinDelta = Delta
+                RowMin = StockN
+             End If
+             If VolTot > MaxVol Then
+                MaxVol = VolTot
+                RowMVol = StockN
+             End If
+       End If
+    End If
+  Next i
+ 
+    Cells(2, 16).Value = Cells(RowMax, 9).Value
+    Cells(3, 16).Value = Cells(RowMin, 9).Value
+    Cells(4, 16).Value = Cells(RowMVol, 9).Value
+    Cells(2, 17).Value = MaxDelta
+    Cells(2, 17).NumberFormat = "0.00%"
+    Cells(3, 17).Value = MinDelta
+    Cells(3, 17).NumberFormat = "0.00%"
+    Cells(4, 17).Value = MaxVol
+ Next N
+End Sub
+
+
